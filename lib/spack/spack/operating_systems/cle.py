@@ -93,21 +93,15 @@ class CrayFrontend(LinuxDistro):
         frontend OS as if it was a regular Linux environment without
         Cray-specific modules and wrappers."""
 
-        # If $PE_ENV is set then one of the PrgEnv-* modules is loaded.
-        prg_env = ('PrgEnv-' + os.environ['PE_ENV'].lower()
-                   if 'PE_ENV' in os.environ
-                   else None)
+        environ_bu = os.environ.copy()
 
-        if prg_env:
-            unload_script =\
-                self._modulecmd('unload', prg_env, output=str, error=os.devnull)
-            exec (compile(unload_script, '<string>', 'exec'))
+        script = \
+            self._modulecmd('purge', output=str, error=os.devnull)
+        exec (compile(script, '<string>', 'exec'))
 
         clist = super(CrayFrontend, self).find_compilers(*paths)
 
-        if prg_env:
-            load_script =\
-                self._modulecmd('load', prg_env, output=str, error=os.devnull)
-            exec (compile(load_script, '<string>', 'exec'))
+        os.environ.clear()
+        os.environ.update(environ_bu)
 
         return clist
