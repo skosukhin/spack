@@ -1,7 +1,10 @@
+"""This module contains classes that represent parts of the Cray Linux
+Environment (CLE)."""
 import re
 import os
 
 from spack.architecture import OperatingSystem
+from spack.operating_systems.linux_distro import LinuxDistro
 from spack.util.executable import *
 import spack.spec
 from spack.util.multiproc import parmap
@@ -68,3 +71,43 @@ class Cnl(OperatingSystem):
                 os.environ['MODULEPATH'] = old_modulepath
 
         return compilers
+
+
+class CrayFrontend(LinuxDistro):
+    """The class represents the OS that runs on login and service nodes of the
+    Cray platform. It acts as a regular Linux without Cray-specific modules and
+    compiler wrappers."""
+
+    _modulecmd = which('modulecmd', required=True)
+    _modulecmd.add_default_arg('python')
+
+    def find_compilers(self, *paths):
+        """Calls the overridden method but prevents it from detecting Cray
+        compiler wrappers by disabling them. There are two reasons for that:
+        first of all, we avoid possible false detection of the compiler wrappers
+        (e.g. if PrgEnv-intel module is loaded the algorithm identifies the
+        wrappers as Cray compilers but not Intel, since the version string
+        returned by Intel compilers is acceptable by Cray compilers' regexp);
+        second, we do not need them anyway, since this class should come into
+        play only if a user, by whatever reason, decides to work with the
+        frontend OS as if it was a regular Linux environment without
+        Cray-specific modules and wrappers."""
+
+        # If $PE_ENV is set then one of the PrgEnv-* modules is loaded.
+        prg_env = ('PrgEnv-' + os.environ['PE_ENV'].lower()
+                   if 'PE_ENV' in os.environ
+                   else None)
+
+        if prg_env:
+            unload_script =\
+                self._modulecmd('unload', prg_env, output=str, error=os.devnull)
+            exec (compile(unload_script, '<string>', 'exec'))
+
+        clist = super(CrayFrontend, self).find_compilers(*paths)
+
+        if prg_env:
+            load_script =\
+                self._modulecmd('load', prg_env, output=str, error=os.devnull)
+            exec (compile(load_script, '<string>', 'exec'))
+
+        return clist

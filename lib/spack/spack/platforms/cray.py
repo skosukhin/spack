@@ -4,8 +4,7 @@ import llnl.util.tty as tty
 from spack import build_env_path
 from spack.util.executable import which
 from spack.architecture import Platform, Target, NoPlatformError
-from spack.operating_systems.linux_distro import LinuxDistro
-from spack.operating_systems.cnl import Cnl
+from spack.operating_systems.cle import Cnl, CrayFrontend
 from llnl.util.filesystem import join_path
 
 
@@ -63,7 +62,7 @@ class Cray(Platform):
         else:
             raise NoPlatformError()
 
-        front_distro = LinuxDistro()
+        front_distro = CrayFrontend()
         back_distro = Cnl()
 
         self.default_os = str(back_distro)
