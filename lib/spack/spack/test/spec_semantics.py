@@ -194,6 +194,43 @@ class SpecSematicsTest(MockPackagesTest):
         self.check_unsatisfiable('mpileaks^mpich', '^zmpi')
         self.check_unsatisfiable('mpileaks^zmpi', '^mpich')
 
+        # This is the recommended way to express 'Python 2 only' dependency:
+        self.check_satisfies('package^python@:2.8', '^python@2.7')
+        self.check_unsatisfiable('package^python@:2.8', '^python@3.1')
+        # which uses the assumption that there are no Python 1 or Python 2.9,
+        # because actually we don't want this to pass:
+        self.check_satisfies('package^python@:2.8', '^python@1.0')
+        # but we would like this to pass:
+        self.check_unsatisfiable('package^python@:2.8', '^python@2.9')
+
+        # A way to get rid of at least one of the assumption is to express
+        # 'Python 2 only' dependency like this:
+        self.check_satisfies('package^python@:2', '^python@2.7')
+        self.check_unsatisfiable('package^python@:2', '^python@3.1')
+        # which unfortunately still lets this to pass:
+        self.check_satisfies('package^python@:2.8', '^python@1.0')
+        # but also allows for this as we would like:
+        self.check_satisfies('package^python@:2', '^python@2.9')
+
+        # This is the recommended way to express 'Python 3 only' dependency:
+        self.check_satisfies('package^python@3:', '^python@3.1')
+        self.check_unsatisfiable('package^python@3:', '^python@2.7')
+        # which uses the assumption that there is no Python 4:
+        self.check_satisfies('package^python@3:', '^python@4.1')
+
+        # And this is the recommended way to express 'Python 2.7 only'
+        # dependency:
+        self.check_satisfies('package^python@2.7:2.8', '^python@2.7.12')
+        self.check_unsatisfiable('package^python@2.7:2.8', '^python@2.6')
+        self.check_unsatisfiable('package^python@2.7:2.8', '^python@3.1')
+        # which uses the assumption that there is no Python 2.8:
+        self.check_satisfies('package^python@2.7:2.8', '^python@2.8.12')
+
+        # It would be nice to be able to express 'Python 2.7 only' dependency
+        # like this:
+        self.check_unsatisfiable('package^python@2.7:2.7', '^python@2.7.12')
+        # but it does not work.
+
     def test_satisfies_dependency_versions(self):
         self.check_satisfies('mpileaks^mpich@2.0', '^mpich@1:3')
         self.check_unsatisfiable('mpileaks^mpich@1.2', '^mpich@2.0')
