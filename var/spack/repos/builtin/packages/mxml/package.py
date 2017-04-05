@@ -31,8 +31,8 @@ class Mxml(AutotoolsPackage):
     non-standard libraries.
     """
 
-    homepage = "http://www.msweet.org"
-    url = "http://www.msweet.org/files/project3/mxml-2.9.tar.gz"
+    homepage = "http://michaelrsweet.github.io/mxml/"
+    url      = "https://github.com/michaelrsweet/mxml/releases/download/release-2.10/mxml-2.10.tar.gz"
 
     version('2.10', '8804c961a24500a95690ef287d150abe')
     version('2.9', 'e21cad0f7aacd18f942aa0568a8dee19')

@@ -31,13 +31,13 @@ import llnl.util.tty as tty
 import spack
 import spack.cmd
 import spack.cmd.checksum
-import spack.url
 import spack.util.web
 from llnl.util.filesystem import mkdirp
 from spack.repository import Repo
 from spack.spec import Spec
 from spack.util.executable import which
 from spack.util.naming import *
+from spack.url import *
 
 description = "create a new package file"
 
@@ -268,6 +268,45 @@ class RPackageTemplate(PackageTemplate):
         super(RPackageTemplate, self).__init__(name, *args)
 
 
+class PerlmakePackageTemplate(PackageTemplate):
+    """Provides appropriate overrides for Perl extensions
+    that come with a Makefile.PL"""
+    base_class_name = 'PerlPackage'
+
+    dependencies = """\
+    # FIXME: Add dependencies if required:
+    # depends_on('perl-foo')
+    # depends_on('barbaz', type=('build', 'link', 'run'))"""
+
+    body = """\
+    # FIXME: If non-standard arguments are used for configure step:
+    # def configure_args(self):
+    #     return ['my', 'configure', 'args']
+
+    # FIXME: in unusual cases, it may be necessary to override methods for
+    #        configure(), build(), check() or install()."""
+
+    def __init__(self, name, *args):
+        # If the user provided `--name perl-cpp`, don't rename it perl-perl-cpp
+        if not name.startswith('perl-'):
+            # Make it more obvious that we are renaming the package
+            tty.msg("Changing package name from {0} to perl-{0}".format(name))
+            name = 'perl-{0}'.format(name)
+
+        super(PerlmakePackageTemplate, self).__init__(name, *args)
+
+
+class PerlbuildPackageTemplate(PerlmakePackageTemplate):
+    """Provides appropriate overrides for Perl extensions
+    that come with a Build.PL instead of a Makefile.PL"""
+    dependencies = """\
+    depends_on('perl-module-build', type='build')
+
+    # FIXME: Add additional dependencies if required:
+    # depends_on('perl-foo')
+    # depends_on('barbaz', type=('build', 'link', 'run'))"""
+
+
 class OctavePackageTemplate(PackageTemplate):
     """Provides appropriate overrides for octave packages"""
 
@@ -305,6 +344,8 @@ templates = {
     'bazel':      BazelPackageTemplate,
     'python':     PythonPackageTemplate,
     'r':          RPackageTemplate,
+    'perlmake':   PerlmakePackageTemplate,
+    'perlbuild':  PerlbuildPackageTemplate,
     'octave':     OctavePackageTemplate,
     'generic':    PackageTemplate
 }
@@ -341,6 +382,10 @@ class BuildSystemGuesser:
     can take a peek at the fetched tarball and discern the build system it uses
     """
 
+    def __init__(self):
+        """Sets the default build system."""
+        self.build_system = 'generic'
+
     def __call__(self, stage, url):
         """Try to guess the type of build system used by a project based on
         the contents of its archive or the URL it was downloaded from."""
@@ -363,7 +408,9 @@ class BuildSystemGuesser:
             (r'/SConstruct$',        'scons'),
             (r'/setup.py$',          'python'),
             (r'/NAMESPACE$',         'r'),
-            (r'/WORKSPACE$',         'bazel')
+            (r'/WORKSPACE$',         'bazel'),
+            (r'/Build.PL$',          'perlbuild'),
+            (r'/Makefile.PL$',       'perlmake'),
         ]
 
         # Peek inside the compressed file.
@@ -384,13 +431,10 @@ class BuildSystemGuesser:
 
         # Determine the build system based on the files contained
         # in the archive.
-        build_system = 'generic'
         for pattern, bs in clues:
             if any(re.search(pattern, l) for l in lines):
-                build_system = bs
+                self.build_system = bs
                 break
-
-        self.build_system = build_system
 
 
 def get_name(args):
@@ -415,9 +459,9 @@ def get_name(args):
     elif args.url:
         # Try to guess the package name based on the URL
         try:
-            name = spack.url.parse_name(args.url)
+            name = parse_name(args.url)
             tty.msg("This looks like a URL for {0}".format(name))
-        except spack.url.UndetectableNameError:
+        except UndetectableNameError:
             tty.die("Couldn't guess a name for this package.",
                     "  Please report this bug. In the meantime, try running:",
                     "  `spack create --name <name> <url>`")
@@ -472,11 +516,16 @@ def get_versions(args, name):
 
     if args.url:
         # Find available versions
-        url_dict = spack.util.web.find_versions_of_archive(args.url)
+        try:
+            url_dict = spack.util.web.find_versions_of_archive(args.url)
+        except UndetectableVersionError:
+            # Use fake versions
+            tty.warn("Couldn't detect version in: {0}".format(args.url))
+            return versions, guesser
 
         if not url_dict:
             # If no versions were found, revert to what the user provided
-            version = spack.url.parse_version(args.url)
+            version = parse_version(args.url)
             url_dict = {version: args.url}
 
         versions = spack.cmd.checksum.get_checksums(
@@ -568,6 +617,7 @@ def create(parser, args):
     url = get_url(args)
     versions, guesser = get_versions(args, name)
     build_system = get_build_system(args, guesser)
+    name = simplify_name(name)
 
     # Create the package template object
     PackageClass = templates[build_system]
