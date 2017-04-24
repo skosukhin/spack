@@ -47,6 +47,7 @@ __all__ = [
     'copy_mode',
     'filter_file',
     'find_libraries',
+    'find_system_libraries',
     'fix_darwin_install_name',
     'force_remove',
     'force_symlink',
@@ -394,8 +395,14 @@ def traverse_tree(source_root, dest_root, rel_path='', **kwargs):
 
 
 def set_executable(path):
-    st = os.stat(path)
-    os.chmod(path, st.st_mode | stat.S_IEXEC)
+    mode = os.stat(path).st_mode
+    if mode & stat.S_IRUSR:
+        mode |= stat.S_IXUSR
+    if mode & stat.S_IRGRP:
+        mode |= stat.S_IXGRP
+    if mode & stat.S_IROTH:
+        mode |= stat.S_IXOTH
+    os.chmod(path, mode)
 
 
 def remove_dead_links(root):
@@ -575,6 +582,54 @@ class LibraryList(collections.Sequence):
 
     def __str__(self):
         return self.joined()
+
+
+def find_system_libraries(args, shared=True):
+    """Searches the usual system library locations for the libraries
+    specified in args.
+
+    Search order is as follows:
+
+    1. /lib64
+    2. /lib
+    3. /usr/lib64
+    4. /usr/lib
+    5. /usr/local/lib64
+    6. /usr/local/lib
+
+    :param args: Library name(s) to search for
+    :type args: str or collections.Sequence
+    :param bool shared: if True searches for shared libraries,
+
+    :returns: The libraries that have been found
+    :rtype: LibraryList
+    """
+    if isinstance(args, str):
+        args = [args]
+    elif not isinstance(args, collections.Sequence):
+        message = '{0} expects a string or sequence of strings as the '
+        message += 'first argument [got {1} instead]'
+        message = message.format(find_system_libraries.__name__, type(args))
+        raise TypeError(message)
+
+    libraries_found = []
+    search_locations = [
+        '/lib64',
+        '/lib',
+        '/usr/lib64',
+        '/usr/lib',
+        '/usr/local/lib64',
+        '/usr/local/lib',
+    ]
+
+    for library in args:
+        for root in search_locations:
+            result = find_libraries(library, root, shared, recurse=True)
+            if result:
+                libraries_found += result
+                break
+
+    return libraries_found
 
 
 def find_libraries(args, root, shared=True, recurse=False):
