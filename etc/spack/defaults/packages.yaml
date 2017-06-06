@@ -31,3 +31,4 @@ packages:
       openfoam: [foam-extend]
       pil: [py-pillow]
       scalapack: [netlib-scalapack]
+      szip: [libszip, libaec]

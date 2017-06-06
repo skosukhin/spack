@@ -25,7 +25,7 @@
 from spack import *
 
 
-class Szip(AutotoolsPackage):
+class Libszip(AutotoolsPackage):
     """Szip is an implementation of the extended-Rice lossless
      compression algorithm.
 
@@ -35,6 +35,8 @@ class Szip(AutotoolsPackage):
 
     homepage = "https://www.hdfgroup.org/doc_resource/SZIP/"
     url = "http://www.hdfgroup.org/ftp/lib-external/szip/2.1/src/szip-2.1.tar.gz"
+
+    provides('szip')
 
     version('2.1', '902f831bcefb69c6b635374424acbead')
 
