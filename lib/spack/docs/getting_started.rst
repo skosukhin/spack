@@ -14,6 +14,7 @@ before Spack is run:
 1. Python 2 (2.6 or 2.7) or 3 (3.3 - 3.6)
 2. A C/C++ compiler
 3. The ``git`` and ``curl`` commands.
+4. If using the ``gpg`` subcommand, ``gnupg2`` is required.
 
 These requirements can be easily installed on most modern Linux systems;
 on Macintosh, XCode is required.  Spack is designed to run on HPC
@@ -639,6 +640,7 @@ Or it can be set permanently in your ``compilers.yaml``:
     flags:
       fflags: -mismatch
     spec: nag@6.1
+
 
 ---------------
 System Packages

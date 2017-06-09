@@ -57,7 +57,7 @@ def mod_to_class(mod_name):
           * Class names use the CapWords convention.
 
        Regular source code follows these convetions.  Spack is a bit
-       more liberal with its Package names nad Compiler names:
+       more liberal with its Package names and Compiler names:
 
           * They can contain '-' as well as '_', but cannot start with '-'.
           * They can start with numbers, e.g. "3proxy".
@@ -110,13 +110,17 @@ def possible_spack_module_names(python_mod_name):
 
 
 def simplify_name(name):
-    """Simplifies a name which may include uppercase letters, periods,
+    """Simplify package name to only lowercase, digits, and dashes.
+
+    Simplifies a name which may include uppercase letters, periods,
     underscores, and pluses. In general, we want our package names to
     only contain lowercase letters, digits, and dashes.
 
-    :param str name: The original name of the package
-    :return: The new name of the package
-    :rtype: str
+    Args:
+        name (str): The original name of the package
+
+    Returns:
+        str: The new name of the package
     """
     # Convert CamelCase to Dashed-Names
     # e.g. ImageMagick -> Image-Magick

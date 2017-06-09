@@ -68,6 +68,13 @@ opt_path       = join_path(prefix, "opt")
 etc_path       = join_path(prefix, "etc")
 
 
+# GPG paths.
+gpg_keys_path      = join_path(var_path, "gpg")
+mock_gpg_data_path = join_path(var_path, "gpg.mock", "data")
+mock_gpg_keys_path = join_path(var_path, "gpg.mock", "keys")
+gpg_path           = join_path(opt_path, "spack", "gpg")
+
+
 #-----------------------------------------------------------------------------
 # Initial imports (only for use in this file -- see __all__ below.)
 #-----------------------------------------------------------------------------
@@ -165,6 +172,7 @@ from spack.package import Package, run_before, run_after, on_package_attributes
 from spack.build_systems.makefile import MakefilePackage
 from spack.build_systems.autotools import AutotoolsPackage
 from spack.build_systems.cmake import CMakePackage
+from spack.build_systems.waf import WafPackage
 from spack.build_systems.python import PythonPackage
 from spack.build_systems.r import RPackage
 from spack.build_systems.perl import PerlPackage
@@ -174,12 +182,13 @@ __all__ += [
     'run_after',
     'on_package_attributes',
     'Package',
-    'CMakePackage',
-    'AutotoolsPackage',
     'MakefilePackage',
+    'AutotoolsPackage',
+    'CMakePackage',
+    'WafPackage',
     'PythonPackage',
     'RPackage',
-    'PerlPackage'
+    'PerlPackage',
 ]
 
 from spack.version import Version, ver
@@ -215,5 +224,5 @@ __all__ += [
 
 # Add default values for attributes that would otherwise be modified from
 # Spack main script
-debug = True
+debug = False
 spack_working_dir = None

@@ -75,7 +75,7 @@ class PythonPackage(PackageBase):
 
     .. code-block:: console
 
-       $ python --no-user-cfg setup.py <phase>
+       $ python setup.py --no-user-cfg <phase>
 
     Each phase also has a <phase_args> function that can pass arguments to
     this call. All of these functions are empty except for the ``install_args``
@@ -137,9 +137,11 @@ class PythonPackage(PackageBase):
     def _setup_command_available(self, command):
         """Determines whether or not a setup.py command exists.
 
-        :param str command: The command to look for
-        :return: True if the command is found, else False
-        :rtype: bool
+        Args:
+            command (str): The command to look for
+
+        Returns:
+            bool: True if the command is found, else False
         """
         kwargs = {
             'output': os.devnull,
