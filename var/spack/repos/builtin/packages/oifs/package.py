@@ -25,7 +25,6 @@
 from spack import *
 import os
 
-
 class Oifs(Package):
     """The OpenIFS programme at ECMWF aims to encourage research and teaching into numerical weather prediction from medium range to seasonal timescales.
        We provide academic and research institutions with an easy-to-use version of ECMWF IFS (Integrated Forecasting System) (the OpenIFS model), the 
@@ -43,55 +42,54 @@ class Oifs(Package):
 
     def install(self, spec, prefix):
 
-    	# Defining installation
-    	os.environ['OIFS_COM'] = 'spack'
+    	# Defining installation (not working)
+    	os.environ['OIFS_COMP'] = 'spack'
     	os.environ['OIFS_BUILD'] = 'opt'
 
         # Clean previous installation
-        os.system('rm -rf ' + os.getcwd() + '/make/gnu-opt/') 
         os.system('rm -rf ' + os.getcwd() + '/make/spack-opt/')
         os.system('rm -rf ' + os.getcwd() + '/make/cfg/spack-opt.cfg')
-        os.system('rm -rf ' + os.getcwd() + '/make/cfg/gnu-opt.cfg')
 
         # Starting with gnu compilation
-        with open(os.getcwd() + '/make/cfg/gnu-opt.cfg', 'w') as f:
+        # TODO: change to generic architecture
+
+        with open(os.getcwd() + '/make/cfg/spack-opt.cfg', 'w') as f:
             f.writelines([
-				'$OIFS_GRIB_API_DIR{?}     = ' +  spec['grib-api'].prefix + '\n'
-				'$OIFS_GRIB_API_INCLUDE{?} = -I $OIFS_GRIB_API_DIR/include\n'
-				'$OIFS_GRIB_API_LIB{?}     = -L$OIFS_GRIB_API_DIR/lib -lgrib_api_f90 -lgrib_api\n'
-				'\n'
-				'# LAPACK & BLAS libraries\n'
-				'$LAPACK_LIB_DEFAULT = ' +  spec['openblas'].prefix.lib + ' -lopenblas \n' # -llapack -lblas\n'
-				'\n'					
-				'# Extra libraries (architecture/compiler specific)\n'
-				'$OIFS_EXTRA_LIB{?}  = \n'
-				'\n'
-				'# Source files that FCM should specifically ignore\n'
-				'$SRC_EXCL = \n'
-				'\n'
-				'#  Fortran\n'
-				'$OIFS_FC{?}     = mpif90\n'
-				'$OIFS_FFLAGS{?} = -g -O2 -m64 -fconvert=big-endian -fopenmp\n'
-				'$OIFS_FFIXED{?} = -fdefault-real-8 -fdefault-double-8 -ffixed-line-length-132\n'
-				'$OIFS_FCDEFS{?} = BLAS LITTLE LINUX INTEGER_IS_INT F90 PARAL NONCRAYF\n'
-				'$OIFS_LFLAGS{?} = -fopenmp\n'
-				'\n'
-				'# C compiler\n'
-				'$OIFS_CC{?}     = mpicc\n'
-				'$OIFS_CFLAGS{?} = -g -O -m64\n'
-				'$OIFS_CCDEFS{?} = BLAS LITTLE LINUX INTEGER_IS_INT _ABI64\n'
-				'\n'		
+			 '$OIFS_GRIB_API_DIR{?}     = ' +  spec['grib-api'].prefix + '\n'
+			 '$OIFS_GRIB_API_INCLUDE{?} = -I $OIFS_GRIB_API_DIR/include\n'
+			 '$OIFS_GRIB_API_LIB{?}     = -L$OIFS_GRIB_API_DIR/lib -lgrib_api_f90 -lgrib_api\n'
+			 '\n'
+			 '# LAPACK & BLAS libraries\n'
+			 '$LAPACK_LIB_DEFAULT = -L' +  spec['openblas'].prefix.lib + ' -lopenblas \n'
+			 '\n'					
+			 '# Extra libraries (architecture/compiler specific)\n'
+			 '$OIFS_EXTRA_LIB{?}  = \n'
+			 '\n'
+			 '# Source files that FCM should specifically ignore\n'
+			 '$SRC_EXCL = \n'
+			 '\n'
+			 '#  Fortran\n'
+			 '$OIFS_FC{?}     = mpif90\n'
+			 '$OIFS_FFLAGS{?} = -g -O2 -m64 -fconvert=big-endian -fopenmp\n'
+			 '$OIFS_FFIXED{?} = -fdefault-real-8 -fdefault-double-8 -ffixed-line-length-132\n'
+			 '$OIFS_FCDEFS{?} = BLAS LITTLE LINUX INTEGER_IS_INT F90 PARAL NONCRAYF\n'
+			 '$OIFS_LFLAGS{?} = -fopenmp\n'
+			 '\n'
+			 '# C compiler\n'
+			 '$OIFS_CC{?}     = mpicc\n'
+			 '$OIFS_CFLAGS{?} = -g -O -m64\n'
+			 '$OIFS_CCDEFS{?} = BLAS LITTLE LINUX INTEGER_IS_INT _ABI64\n'
+			 '\n'		
             ])
 
-        
         # Change directory to make
         os.chdir(os.getcwd() + '/make/')
 
-        # Execute fcm command (fcm make -v -f oifs.cfg)
-        os.system('../fcm/bin/fcm make -j 8 -v -f oifs.cfg')
+        # Execute fcm build command
+        # TODO get ncpus from spack
+        ncpus = 8
+        os.system('../fcm/bin/fcm make -j ' + str(ncpus) + ' -v -f oifs.cfg')
+  
+        # Add bin to spack package
+        install_tree(os.getcwd() + '/spack-opt/oifs/bin/', prefix.bin)
         
-        # Check master.exe binary exists
-
-
-
-
