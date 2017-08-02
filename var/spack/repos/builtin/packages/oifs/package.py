@@ -41,9 +41,10 @@ class Oifs(Package):
 
     version('40r1', '5e55122d2bc7e175af931efeded06e83')
 
-    depends_on('openmpi')
+    depends_on('mpi')
     depends_on('grib-api')
-    depends_on('openblas')
+    depends_on('lapack')
+    depends_on('perl@5.10:', type='build')
 
     def install(self, spec, prefix):
 
@@ -91,7 +92,7 @@ class Oifs(Package):
                 '$OIFS_GRIB_API_LIB = -lgrib_api_f90 -lgrib_api\n',
 
                 '$LAPACK_LIB_DEFAULT = ' +
-                self.spec['openblas'].libs.link_flags + '\n',
+                self.spec['lapack'].libs.link_flags + '\n',
 
                 # Declaration of empty but mandatory variables:
                 '$OIFS_GRIB_API_INCLUDE =\n',
