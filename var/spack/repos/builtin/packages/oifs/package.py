@@ -44,6 +44,11 @@ class Oifs(Package):
     depends_on('mpi')
     depends_on('grib-api')
     depends_on('lapack')
+
+    # Starting the version 5.10, Perl's core contains Time::Piece, which is
+    # necessary to run FCM. Keep in mind that some Linux distributions provide
+    # Perl packages without core modules, so better not specify Perl as an
+    # external package but always build it with Spack.
     depends_on('perl@5.10:', type='build')
 
     def install(self, spec, prefix):
@@ -73,10 +78,13 @@ class Oifs(Package):
         else:
             raise InstallError('Only GNU and Intel compilers are supported.')
 
+        f_flags.append(self.compiler.openmp_flag)
+        l_flags.append(self.compiler.openmp_flag)
+
         with open('make/cfg/spack-opt.cfg', 'w') as f:
             f.writelines([
-                # The compiler wrapper will add -I and -L flags, so we don't
-                # have to put them in the file.
+                # Spack's compiler wrapper will add -I and -L flags, so we
+                # don't have to put them in the file.
 
                 '$OIFS_FC = ' + self.spec['mpi'].mpifc + '\n',
                 '$OIFS_FFLAGS = ' + ' '.join(f_flags) + '\n',
@@ -100,14 +108,20 @@ class Oifs(Package):
                 '$OIFS_EXTRA_LIB =\n'
             ])
 
-        f_flags.append(self.compiler.openmp_flag)
-        l_flags.append(self.compiler.openmp_flag)
+        oifs_cfg = join_path(self.stage.source_path, 'make/oifs.cfg')
+
+        # Remove '{?}' from the variable definitions in oifs.cfg to make sure
+        # they won't be overridden by environment variables (except for
+        # OIFS_COMP and OIFS_BUILD, which we set ourselves).
+        filter_file(r'^(\$(?!OIFS_COMP|OIFS_BUILD)\w+)\{\?\}(\s*=.*)$',
+                    r'\1\2', oifs_cfg)
 
         fcm = Executable(join_path(self.stage.source_path, 'fcm/bin/fcm'))
         fcm.add_default_env('OIFS_COMP', 'spack')
         fcm.add_default_env('OIFS_BUILD', 'opt')
 
         with working_dir('make'):
-            rmtree('spack-opt', ignore_errors=True)
-            fcm('make', '-j', str(make_jobs), '-v', '-f', 'oifs.cfg')
+            # Delete fcm lock (if it exists) to continue interrupted building.
+            rmtree('spack-opt/fcm-make.lock', ignore_errors=True)
+            fcm('make', '-j', str(make_jobs), '-v', '-f', oifs_cfg)
             install_tree('spack-opt/oifs/bin', prefix.bin)
