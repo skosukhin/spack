@@ -30,6 +30,7 @@ import argparse
 import llnl.util.tty as tty
 import spack.cmd
 import spack.build_environment as build_env
+import spack.cmd.common.arguments as arguments
 
 description = "show install environment for a spec, and run commands"
 section = "build"
@@ -40,6 +41,9 @@ def setup_parser(subparser):
     subparser.add_argument(
         'spec', nargs=argparse.REMAINDER,
         help="specs of package environment to emulate")
+
+    cd_group = subparser.add_mutually_exclusive_group()
+    arguments.add_common_arguments(cd_group, ['clean', 'dirty'])
 
 
 def env(parser, args):
@@ -64,7 +68,7 @@ def env(parser, args):
         tty.die("spack env only takes one spec.")
     spec = specs[0]
 
-    build_env.setup_package(spec.package)
+    build_env.setup_package(spec.package, dirty=args.dirty)
 
     if not cmd:
         # If no command act like the "env" command and print out env vars.
