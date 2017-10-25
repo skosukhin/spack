@@ -134,7 +134,7 @@ class Cdo(AutotoolsPackage):
         config_args += self.enable_or_disable('openmp')
 
         # Workaround for a problem in CDO
-        if self.spec.satisfies('@1.9:+hdf5^hdf5+mpi'):
-            config_args.append('CXX=' + self.spec['mpi'].mpicxx)
+        # if self.spec.satisfies('@1.9:+hdf5^hdf5+mpi'):
+        #     config_args.append('CXX=' + self.spec['mpi'].mpicxx)
 
         return config_args
