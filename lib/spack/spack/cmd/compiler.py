@@ -154,11 +154,12 @@ def compiler_info(args):
                     print("\t\t%s = %s" % (flag, flag_value))
             if any(c.environment):
                 print("\tenvironment:")
-                if any(c.environment['set']):
+                if 'set' in c.environment and any(c.environment['set']):
                     print("\t    set:")
                     for key, value in iteritems(c.environment['set']):
                         print("\t        %s = %s" % (key, value))
-                if any(c.environment['prepend-path']):
+                if 'prepend-path' in c.environment and \
+                        any(c.environment['prepend-path']):
                     print("\t    prepend-path:")
                     for key, value in iteritems(c.environment['prepend-path']):
                         print("\t        %s = %s" % (key, value))
