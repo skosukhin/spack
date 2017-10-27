@@ -78,7 +78,7 @@ variables.  For example, a package might pick up the wrong build-time
 dependencies (most of them not specified) depending on the setting of
 ``PATH``.  ``GCC`` seems to be particularly vulnerable to these issues.
 
-Therefore, it is recommended that Spack users run with a *clean
+Therefore, it is recommended that users run Spack with a *clean
 environment*, especially for ``PATH``.  Only software that comes with
 the system, or that you know you wish to use with Spack, should be
 included.  This procedure will avoid many strange build errors.
@@ -995,61 +995,6 @@ version 8.5 with whatever version is installed on your system:
               paths:
                   tcl@8.5: /usr
               buildable: False
-
-^^^^^^^^^^^^^^^^^
-Package Utilities
-^^^^^^^^^^^^^^^^^
-
-Spack may also encounter bootstrapping problems inside a package's
-``install()`` method.  In this case, Spack will normally be running
-inside a *sanitized build environment*.  This includes all of the
-package's dependencies, but none of the environment Spack inherited
-from the user: if you load a module or modify ``$PATH`` before
-launching Spack, it will have no effect.
-
-In this case, you will likely need to use the ``--dirty`` flag when
-running ``spack install``, causing Spack to **not** sanitize the build
-environment.  You are now responsible for making sure that environment
-does not do strange things to Spack or its installs.
-
-Another way to get Spack to use its own version of something is to add
-that something to a package that needs it.  For example:
-
-.. code-block:: python
-
-   depends_on('binutils', type='build')
-
-This is considered best practice for some common build dependencies,
-such as ``autotools`` (if the ``autoreconf`` command is needed) and
-``cmake`` --- ``cmake`` especially, because different packages require
-a different version of CMake.
-
-""""""""
-binutils
-""""""""
-
-.. https://groups.google.com/forum/#!topic/spack/i_7l_kEEveI
-
-Sometimes, strange error messages can happen while building a package.
-For example, ``ld`` might crash.  Or one receives a message like:
-
-.. code-block:: console
-
-   ld: final link failed: Nonrepresentable section on output
-
-
-or:
-
-.. code-block:: console
-
-   ld: .../_fftpackmodule.o: unrecognized relocation (0x2a) in section `.text'
-
-These problems are often caused by an outdated ``binutils`` on your
-system.  Unlike CMake or Autotools, adding ``depends_on('binutils')`` to
-every package is not considered a best practice because every package
-written in C/C++/Fortran would need it.  A potential workaround is to
-load a recent ``binutils`` into your environment and use the ``--dirty``
-flag.
 
 -----------
 GPG Signing

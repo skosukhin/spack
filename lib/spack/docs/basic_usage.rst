@@ -142,6 +142,16 @@ that the packages is installed:
 The last line, with the ``[+]``, indicates where the package is
 installed.
 
+.. note::
+
+   By default, Spack tries to prevent unintended dependencies of the software
+   it builds by performing installations inside a *sanitized build environment*.
+   This means that the following environment variables inherited from the user
+   get unset: ``$LD_LIBRARY_PATH``, ``$LIBRARY_PATH``, ``$CPATH``,
+   ``$LD_RUN_PATH``, ``$DYLD_LIBRARY_PATH``. If it becomes obvious that this
+   behaviour prevents from building at all, consider specifying the ``--dirty``
+   flag.
+
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Building a specific version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
