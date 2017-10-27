@@ -250,15 +250,6 @@ def set_build_environment_variables(pkg, env, dirty):
     # Set environment variables if specified for
     # the given compiler
     compiler = pkg.compiler
-    environment = compiler.environment
-    if 'set' in environment:
-        env_to_set = environment['set']
-        for key, value in iteritems(env_to_set):
-            env.set('SPACK_ENV_SET_%s' % key, value)
-            env.set('%s' % key, value)
-        # Let shell know which variables to set
-        env_variables = ":".join(env_to_set.keys())
-        env.set('SPACK_ENV_TO_SET', env_variables)
 
     if compiler.extra_rpaths:
         extra_rpaths = ':'.join(compiler.extra_rpaths)
@@ -441,6 +432,26 @@ def load_external_modules(pkg):
             load_module(dep.external_module)
 
 
+def apply_compiler_env_modifications(comp_env):
+    """Apply environment modifications specified in the environment section of
+    the compiler configuration.
+
+    Args:
+        comp_env (syaml_dict): environment section of the compiler
+            configuration
+    """
+    if 'set' in comp_env:
+        for key, value in iteritems(comp_env['set']):
+            os.environ[key] = value
+
+    if 'prepend-path' in comp_env:
+        for key, value in iteritems(comp_env['prepend-path']):
+            if key in os.environ:
+                os.environ[key] = value + ':' + os.environ[key]
+            else:
+                os.environ[key] = value
+
+
 def setup_package(pkg, dirty):
     """Execute all environment setup routines."""
     spack_env = EnvironmentModifications()
@@ -511,6 +522,8 @@ def setup_package(pkg, dirty):
         if os.environ.get("CRAY_CPU_TARGET") == "mic-knl":
             load_module("cce")
         load_module(mod)
+
+    apply_compiler_env_modifications(pkg.compiler.environment)
 
     if pkg.architecture.target.module_name:
         load_module(pkg.architecture.target.module_name)

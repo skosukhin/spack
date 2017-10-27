@@ -124,7 +124,7 @@ required before Spack can work in a practical sense.  Read on...
 .. _compiler-config:
 
 ----------------------
-Compiler configuration
+Compiler Configuration
 ----------------------
 
 Spack has the ability to build packages with multiple compilers and
@@ -230,11 +230,11 @@ version. We just said ``intel@15``, and information about the only
 matching Intel compiler was displayed.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Manual compiler configuration
+Manual Compiler Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If auto-detection fails, you can manually configure a compiler by
-editing your ``~/.spack/compilers.yaml`` file.  You can do this by running
+If auto-detection fails, you can manually configure a compiler by editing your
+``~/.spack/compilers.yaml`` file.  You can do this by running
 ``spack config edit compilers``, which will open the file in your ``$EDITOR``.
 
 Each compiler configuration in the file looks like this:
@@ -243,6 +243,9 @@ Each compiler configuration in the file looks like this:
 
    compilers:
    - compiler:
+       environment: {}
+       extra_rpaths: []
+       flags: {}
        modules: []
        operating_system: centos6
        paths:
@@ -251,6 +254,7 @@ Each compiler configuration in the file looks like this:
          f77: /usr/local/bin/ifort-15.0.024-beta
          fc: /usr/local/bin/ifort-15.0.024-beta
        spec: intel@15.0.0:
+       target: x86_64
 
 For compilers that do not support Fortran (like ``clang``), put
 ``None`` for ``f77`` and ``fc``:
@@ -259,6 +263,9 @@ For compilers that do not support Fortran (like ``clang``), put
 
    compilers:
    - compiler:
+       environment: {}
+       extra_rpaths: []
+       flags: {}
        modules: []
        operating_system: centos6
        paths:
@@ -267,6 +274,7 @@ For compilers that do not support Fortran (like ``clang``), put
          f77: None
          fc: None
        spec: clang@3.3svn
+       target: x86_64
 
 Once you save the file, the configured compilers will show up in the
 list displayed by ``spack compilers``.
@@ -280,6 +288,12 @@ specification. The valid flags are ``cflags``, ``cxxflags``, ``fflags``,
 
    compilers:
    - compiler:
+       environment: {}
+       extra_rpaths: []
+       flags:
+         cflags: -O3 -fPIC
+         cxxflags: -O3 -fPIC
+         cppflags: -O3 -fPIC
        modules: []
        operating_system: centos6
        paths:
@@ -287,17 +301,120 @@ specification. The valid flags are ``cflags``, ``cxxflags``, ``fflags``,
          cxx: /usr/bin/g++
          f77: /usr/bin/gfortran
          fc: /usr/bin/gfortran
-       flags:
-         cflags: -O3 -fPIC
-         cxxflags: -O3 -fPIC
-         cppflags: -O3 -fPIC
        spec: gcc@4.7.2
+       target: x86_64
 
-These flags will be treated by spack as if they were entered from
-the command line each time this compiler is used. The compiler wrappers
-then inject those flags into the compiler command. Compiler flags
-entered from the command line will be discussed in more detail in the
-following section.
+These flags will be treated by spack as if they were entered from the command
+line each time this compiler is used. The compiler wrappers then inject those
+flags into the compiler command.
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Compilers Requiring Modules
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Many installed compilers will work regardless of the environment they
+are called with.  However, some installed compilers require
+``$LD_LIBRARY_PATH`` or other environment variables to be set in order
+to run; this is typical for Intel and other proprietary compilers.
+
+In such a case, you should tell Spack which module(s) to load in order
+to run the chosen compiler (if the compiler does not come with a
+module file, you might consider making one by hand). For example:
+
+.. code-block:: yaml
+
+   compilers:
+   - compiler:
+       environment: {}
+       extra_rpaths: []
+       flags: {}
+       modules: [other/comp/gcc-5.3-sp3]
+       operating_system: SuSE11
+       paths:
+         cc: /usr/local/other/SLES11.3/gcc/5.3.0/bin/gcc
+         cxx: /usr/local/other/SLES11.3/gcc/5.3.0/bin/g++
+         f77: /usr/local/other/SLES11.3/gcc/5.3.0/bin/gfortran
+         fc: /usr/local/other/SLES11.3/gcc/5.3.0/bin/gfortran
+       spec: gcc@5.3.0
+
+Some compilers require special environment settings to be loaded not just
+to run, but also to execute the code they build, breaking packages that
+need to execute code they just compiled. If it's not possible or
+practical to use a better compiler, you'll need to ensure that
+environment settings are preserved for compilers like this (i.e., you'll
+need to load the module or source the compiler's shell script).
+
+By default, Spack tries to ensure that builds are reproducible by
+cleaning the environment before building. If this interferes with your
+compiler settings, you CAN use ``spack install --dirty`` as a workaround.
+Note that this MAY interfere with package builds.
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Compiler Environment Variables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the exceptional case a compiler requires setting or modifying special
+environment variables, like an explicit library load path or a path to
+binutils. If by any reason, using or editing environment modules is not an
+option, necessary environment modifications can be specified in the
+``environment`` section of the compiler configuration file. The valid
+operations are ``set`` and ``prepend-path``. In the latter case variables are
+treated as lists of paths separated by colons. For example:
+
+.. code-block:: yaml
+
+   compilers:
+   - compiler:
+       environment:
+         set:
+           LD_LIBRARY_PATH: "/opt/intel/lib/intel64:/opt/intel/mkl/lib/intel64"
+         prepend-path:
+           PATH: /opt/gcc/binutils/bin
+       extra_rpaths: []
+       flags: {}
+       modules:
+       - gcc/6.2.0
+       - intel/17.0.1
+       operating_system: centos6
+       paths:
+         cc: /opt/intel/bin/icc
+         cxx: /opt/intel/bin/icpc
+         f77: /opt/intel/bin/ifort
+         fc: /opt/intel/bin/ifort
+       spec: intel@17.0.1
+       target: x86_64
+
+Environment changes that are specified in the compiler configuration file are
+applied after the corresponding modules are loaded. Environment modification
+operations are applied in the following order: ``set``, ``prepend-path``.
+
+^^^^^^^^^^^^^^^^^
+Additional RPATHs
+^^^^^^^^^^^^^^^^^
+
+It is also possible to specify additional ``RPATHs`` that the compiler will add
+to all executables (and shared libraries) generated by that compiler. This is
+useful for forcing certain compilers to RPATH their own runtime libraries, so
+that executables will run without the need to set ``LD_LIBRARY_PATH``.
+
+.. code-block:: yaml
+
+   compilers:
+   - compiler:
+       environment: {}
+       extra_rpaths:
+       - /path/to/some/compiler/runtime/directory
+       - /path/to/some/other/compiler/runtime/directory
+       flags: {}
+       modules: []
+       operating_system: centos6
+       paths:
+         cc: /opt/gcc/bin/gcc
+         c++: /opt/gcc/bin/g++
+         f77: /opt/gcc/bin/gfortran
+         fc: /opt/gcc/bin/gfortran
+       spec: gcc@4.9.3
+       target: x86_64
 
 ^^^^^^^^^^^^^^^^^^^^^^^
 Build Your Own Compiler
@@ -319,48 +436,6 @@ by adding the following to your ``packages.yaml`` file:
    packages:
      all:
        compiler: [gcc@4.9.3]
-
-
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Compilers Requiring Modules
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Many installed compilers will work regardless of the environment they
-are called with.  However, some installed compilers require
-``$LD_LIBRARY_PATH`` or other environment variables to be set in order
-to run; this is typical for Intel and other proprietary compilers.
-
-In such a case, you should tell Spack which module(s) to load in order
-to run the chosen compiler (If the compiler does not come with a
-module file, you might consider making one by hand).  Spack will load
-this module into the environment ONLY when the compiler is run, and
-NOT in general for a package's ``install()`` method.  See, for
-example, this ``compilers.yaml`` file:
-
-.. code-block:: yaml
-
-   compilers:
-   - compiler:
-       modules: [other/comp/gcc-5.3-sp3]
-       operating_system: SuSE11
-       paths:
-         cc: /usr/local/other/SLES11.3/gcc/5.3.0/bin/gcc
-         cxx: /usr/local/other/SLES11.3/gcc/5.3.0/bin/g++
-         f77: /usr/local/other/SLES11.3/gcc/5.3.0/bin/gfortran
-         fc: /usr/local/other/SLES11.3/gcc/5.3.0/bin/gfortran
-       spec: gcc@5.3.0
-
-Some compilers require special environment settings to be loaded not just
-to run, but also to execute the code they build, breaking packages that
-need to execute code they just compiled.  If it's not possible or
-practical to use a better compiler, you'll need to ensure that
-environment settings are preserved for compilers like this (i.e., you'll
-need to load the module or source the compiler's shell script).
-
-By default, Spack tries to ensure that builds are reproducible by
-cleaning the environment before building.  If this interferes with your
-compiler settings, you CAN use ``spack install --dirty`` as a workaround.
-Note that this MAY interfere with package builds.
 
 .. _licensed-compilers:
 

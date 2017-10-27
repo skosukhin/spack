@@ -92,6 +92,14 @@ schema = {
                                             'type': 'string'
                                         }
                                     }
+                                },
+                                'prepend-path': {
+                                    'type': 'object',
+                                    'patternProperties': {
+                                        r'\w[\w-]*': {  # variable name
+                                            'type': 'string'
+                                        }
+                                    }
                                 }
                             }
                         },
