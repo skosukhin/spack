@@ -51,14 +51,15 @@ There are two parts to the build environment:
 Skimming this module is a nice way to get acquainted with the types of
 calls you can make from within the install() function.
 """
+import collections
 import inspect
 import multiprocessing
 import os
 import shutil
 import sys
 import traceback
-from six import iteritems
-from six import StringIO
+
+import six
 
 import llnl.util.tty as tty
 from llnl.util.tty.color import colorize
@@ -432,24 +433,69 @@ def load_external_modules(pkg):
             load_module(dep.external_module)
 
 
-def apply_compiler_env_modifications(comp_env):
+def apply_compiler_env_modifications(env_modifications):
     """Apply environment modifications specified in the environment section of
     the compiler configuration.
 
     Args:
-        comp_env (syaml_dict): environment section of the compiler
+        env_modifications (list): environment section of the compiler
             configuration
     """
-    if 'set' in comp_env:
-        for key, value in iteritems(comp_env['set']):
-            os.environ[key] = value
+    class StreamWithHeader:
+        def __init__(self, stream, header=None, prefix=None):
+            self.stream = stream
+            self.header = header
+            self.prefix = '' if prefix is None else prefix
+            self.header_was_printed = header is None
 
-    if 'prepend-path' in comp_env:
-        for key, value in iteritems(comp_env['prepend-path']):
-            if key in os.environ:
-                os.environ[key] = value + ':' + os.environ[key]
-            else:
-                os.environ[key] = value
+        def __call__(self, message, *args, **kwargs):
+            if not self.header_was_printed:
+                self.stream(self.header)
+                self.header_was_printed = True
+            self.stream(self.prefix + message, *args, ** kwargs)
+
+    warn_stream = StreamWithHeader(tty.warn,
+                                   'Check commands in the list of compiler '
+                                   'environment modifications:',
+                                   '\t')
+
+    compiler_env = EnvironmentModifications()
+    # for modification in env_modifications:
+    #     if isinstance(command, six.string_types) or \
+    #             not isinstance(command, collections.Sequence):
+    #         command = modification
+    #         var_name = None
+    #
+    #
+    #     if command[0] == 'set':
+    #         if len(command) != 3:
+    #             warn_stream('Unexpected number of arguments (2 expected): '
+    #                         + str(command))
+    #         else:
+    #             comp_env.set(command[1], command[2])
+    #     elif command[0] == 'unset':
+    #         if len(command) != 2:
+    #             warn_stream('Unexpected number of arguments (1 expected): '
+    #                         + str(command))
+    #         else:
+    #             comp_env.unset(command[1])
+    #     elif command[0] == 'prepend-path':
+    #         if len(command) != 3:
+    #             warn_stream('Unexpected number of arguments (2 expected): '
+    #                         + str(command))
+    #         else:
+    #             comp_env.prepend_path(command[1], os.path.expandvars(command[2]))
+    #     elif command[0] == 'append-path':
+    #         if len(command) != 3:
+    #             warn_stream('Unexpected number of arguments (2 expected):'
+    #                         + str(command))
+    #         else:
+    #             comp_env.append_path(command[1],  os.path.expandvars(command[2]))
+    #     else:
+    #         warn_stream('Unknown command: ' + str(command))
+
+    validate(compiler_env, warn_stream)
+    compiler_env.apply_modifications()
 
 
 def setup_package(pkg, dirty):
@@ -517,10 +563,11 @@ def setup_package(pkg, dirty):
     # have to occur after the spack_env object has its modifications applied.
     # Otherwise the environment modifications could undo module changes, such
     # as unsetting LD_LIBRARY_PATH after a module changes it.
-    for mod in pkg.compiler.modules:
-        # Fixes issue https://github.com/LLNL/spack/issues/3153
-        if os.environ.get("CRAY_CPU_TARGET") == "mic-knl":
-            load_module("cce")
+    if pkg.compiler.modules:
+        for mod in pkg.compiler.modules:
+            # Fixes issue https://github.com/LLNL/spack/issues/3153
+            if os.environ.get("CRAY_CPU_TARGET") == "mic-knl":
+                load_module("cce")
         load_module(mod)
 
     apply_compiler_env_modifications(pkg.compiler.environment)
@@ -761,7 +808,7 @@ class ChildError(InstallError):
 
     @property
     def long_message(self):
-        out = StringIO()
+        out = six.StringIO()
         out.write(self._long_message if self._long_message else '')
 
         if (self.module, self.name) in ChildError.build_errors:

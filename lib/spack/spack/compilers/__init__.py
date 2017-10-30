@@ -37,12 +37,13 @@ import spack.config
 import spack.architecture
 
 from spack.util.naming import mod_to_class
+from spack.util.spack_yaml import syaml_dict
 
 _imported_compilers_module = 'spack.compilers'
+# TODO: connect the following array with spack.compiler.__init__().
 _path_instance_vars = ['cc', 'cxx', 'f77', 'fc']
+# TODO: connect the following array with spack.spec._valid_compiler_flags.
 _flags_instance_vars = ['cflags', 'cppflags', 'cxxflags', 'fflags']
-_other_instance_vars = ['modules', 'operating_system', 'environment',
-                        'extra_rpaths']
 _cache_config_file = []
 
 #: cache of compilers constructed from config data, keyed by config entry id.
@@ -59,20 +60,27 @@ def _auto_compiler_spec(function):
 
 def _to_dict(compiler):
     """Return a dict version of compiler suitable to insert in YAML."""
-    d = {}
+    # TODO: connect this function with schema.compilers.py.
+
+    # We use syaml_dict() to preserve the order of insertion to make important
+    # things to appear in the configuration file on the top, so it will be
+    # easier for the users to understand it.
+    d = syaml_dict()
     d['spec'] = str(compiler.spec)
+    d['operating_system'] = str(compiler.operating_system)
+    d['target'] = str(compiler.target)
+
     d['paths'] = dict((attr, getattr(compiler, attr, None))
                       for attr in _path_instance_vars)
     d['flags'] = dict((fname, fvals) for fname, fvals in compiler.flags)
     d['flags'].update(dict((attr, getattr(compiler, attr, None))
                       for attr in _flags_instance_vars
                            if hasattr(compiler, attr)))
-    d['operating_system'] = str(compiler.operating_system)
-    d['target'] = str(compiler.target)
+    d['extra_rpaths'] = compiler.extra_rpaths if compiler.extra_rpaths else []
     d['modules'] = compiler.modules if compiler.modules else []
     d['environment'] = compiler.environment if compiler.environment else {}
-    d['extra_rpaths'] = compiler.extra_rpaths if compiler.extra_rpaths else []
 
+    # TODO: describe this field in the documentation.
     if compiler.alias:
         d['alias'] = compiler.alias
 
