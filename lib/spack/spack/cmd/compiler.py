@@ -161,18 +161,17 @@ def compiler_info(args):
 
             if any(c.environment):
                 print("\tenvironment:")
-                print("\t\tset:")
-                for key, value in iteritems(c.environment['set']):
-                    print("\t\t\t%s: %s" % (key, value))
+                for command in c.environment:
+                    print("\t\t%s" % command)
             else:
                 print("\tenvironment: " + str(type(c.environment)()))
 
             if any(c.extra_rpaths):
-                print("\textra_rpaths:")
+                print("\tExtra RPATHs:")
                 for extra_rpath in c.extra_rpaths:
                     print("\t\t" + extra_rpath)
             else:
-                print("\textra_rpaths: " + str(type(c.extra_rpaths)()))
+                print("\tExtra RPATHs: " + str(type(c.extra_rpaths)()))
 
             if any(c.modules):
                 print("\tmodules:")

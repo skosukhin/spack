@@ -42,7 +42,7 @@ def minimal_config():
 
 
 optional_with_default = {
-    'environment': {},
+    'environment': [],
     'modules': [],
     'flags': {},
     'extra_rpaths': [],
