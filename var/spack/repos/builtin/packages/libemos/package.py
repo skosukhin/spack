@@ -29,9 +29,11 @@ class Libemos(CMakePackage):
     """The Interpolation library (EMOSLIB) includes Interpolation software and
        BUFR & CREX encoding/decoding routines."""
 
-    homepage = "https://software.ecmwf.int/wiki/display/EMOS/Emoslib"
-    url      = "https://software.ecmwf.int/wiki/download/attachments/3473472/libemos-4.4.2-Source.tar.gz"
-    list_url = "https://software.ecmwf.int/wiki/display/EMOS/Releases"
+    homepage = 'https://software.ecmwf.int/wiki/display/EMOS/Emoslib'
+    url = 'https://software.ecmwf.int/wiki/download/attachments/3473472/libemos-4.4.2-Source.tar.gz'
+    list_url = 'https://software.ecmwf.int/wiki/display/EMOS/Releases'
+
+    maintainers = ['skosukhin']
 
     version('4.5.1', 'eec1ef4de841df3c68c08fa94d7939ff')
     version('4.5.0', '0ad8962a73e3ca90a8094561adc81276')
@@ -41,29 +43,38 @@ class Libemos(CMakePackage):
 
     variant('grib', default='eccodes', values=('eccodes', 'grib-api'),
             description='Specify GRIB backend')
+    variant('test', default=False, description='Enable the unit tests')
     variant('build_type', default='RelWithDebInfo',
             description='The build type to build',
             values=('Debug', 'Release', 'RelWithDebInfo', 'Production'))
 
-    depends_on('eccodes', when='grib=eccodes')
-    depends_on('grib-api', when='grib=grib-api')
+    depends_on('eccodes+fortran', when='grib=eccodes')
+    depends_on('grib-api+fortran', when='grib=grib-api')
     depends_on('fftw+float+double')
     depends_on('cmake@2.8.11:', type='build')
     depends_on('pkgconfig', type='build')
+    # depends_on('boost', type='test')
 
     conflicts('grib=eccodes', when='@:4.4.1',
               msg='Eccodes is supported starting version 4.4.2')
 
     def cmake_args(self):
-        args = []
+        args = ['-DFFTW_ROOT=' + self.spec['fftw'].prefix]
+
+        # if '+test' in self.spec:
 
         if self.spec.variants['grib'].value == 'eccodes':
-            args.append('-DENABLE_ECCODES=ON')
+            args.extend(['-DENABLE_ECCODES=ON',
+                         '-DECCODES_PATH=' + self.spec['eccodes'].prefix])
         else:
             if self.spec.satisfies('@4.4.2:'):
                 args.append('-DENABLE_ECCODES=OFF')
 
         # To support long pathnames that spack generates
         args.append('-DCMAKE_Fortran_FLAGS=-ffree-line-length-none')
+
+        args.append('-DCMAKE_FIND_DEBUG_MODE=ON')
+        args.append('-DECBUILD_LOG_LEVEL=DEBUG')
+        args.append('-DBoost_DEBUG=ON')
 
         return args

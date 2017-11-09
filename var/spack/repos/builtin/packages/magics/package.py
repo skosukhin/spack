@@ -31,9 +31,11 @@ class Magics(CMakePackage):
        software MAGICS. Although completely redesigned in C++, it is intended
        to be as backwards-compatible as possible with the Fortran interface."""
 
-    homepage = "https://software.ecmwf.int/wiki/display/MAGP/Magics"
-    url      = "https://software.ecmwf.int/wiki/download/attachments/3473464/Magics-2.29.0-Source.tar.gz"
-    list_url = "https://software.ecmwf.int/wiki/display/MAGP/Releases"
+    homepage = 'https://software.ecmwf.int/wiki/display/MAGP/Magics'
+    url = 'https://software.ecmwf.int/wiki/download/attachments/3473464/Magics-2.29.0-Source.tar.gz'
+    list_url = 'https://software.ecmwf.int/wiki/display/MAGP/Releases'
+
+    maintainers = ['skosukhin']
 
     # The policy on which minor releases remain available and which get deleted
     # after a newer version becomes available is unclear.
@@ -69,7 +71,7 @@ class Magics(CMakePackage):
     # Build dependencies
     depends_on('cmake@2.8.11:', type='build')
     depends_on('pkgconfig', type='build')
-    depends_on('python@:2', type='build')
+    depends_on('python@:2.999', type='build')
     depends_on('perl', type='build')
     depends_on('perl-xml-parser', type='build')
 
@@ -105,7 +107,7 @@ class Magics(CMakePackage):
     # Python 2 is required for running the building scripts. Since we can't
     # have two different versions of Python at the same time, we haven't even
     # tested if the Python interface supports Python 3.
-    depends_on('python', when='+python', type=('link', 'run'))
+    depends_on('python', when='+python', type=('build', 'link', 'run'))
     depends_on('py-numpy', when='+python', type=('build', 'run'))
     depends_on('swig', when='+python', type='build')
 
@@ -113,6 +115,8 @@ class Magics(CMakePackage):
               msg='Eccodes is supported starting version 2.29.1')
     conflicts('+python', when='@:2.28',
               msg='Python interface is supported starting version 2.29.0')
+    conflicts('+qt', when='~metview',
+              msg='Qt variant is valid only when metview support is enabled')
 
     # Replace system python and perl by spack versions:
     def patch(self):
@@ -124,17 +128,43 @@ class Magics(CMakePackage):
     def cmake_args(self):
         args = [
             '-DENABLE_ODB=OFF',
-            '-DENABLE_SPOT=OFF'
+            '-DENABLE_SPOT=OFF',
+            '-DENABLE_TESTS=ON',
+            '-DZLIB_ROOT=' + self.spec['zlib'].prefix,
+            '-DPYTHON_EXECUTABLE:FILEPATH=' + python.path,
+
+            # Ignore newer versions in system paths.
+            '-DBOOST_ROOT=' + self.spec['boost'].prefix,
+            '-DBoost_NO_SYSTEM_PATHS=ON',
+
+            # Prevent overriding by environment variables Boost_DIR,
+            # BOOST_ROOT, and BOOSTROOT.
+            '-DBoost_NO_BOOST_CMAKE=ON',
+
+            # Prevent overriding by environment variable PKG_CONFIG
+            '-DPKG_CONFIG_EXECUTABLE:FILEPATH=' +
+            join_path(self.spec['pkgconfig'].prefix.bin, 'pkg-config'),
+
+            # Prevent overriding by environment variables PROJ4_PATH and
+            # PROJ4_DIR.
+            '-DPROJ4_PATH=' + self.spec['proj'].prefix
         ]
 
         if self.spec.variants['grib'].value == 'eccodes':
-            args.append('-DENABLE_ECCODES=ON')
+            args.extend(['-DENABLE_ECCODES=ON',
+                         '-DECCODES_PATH=' + self.spec['eccodes'].prefix])
         else:
             if self.spec.satisfies('@2.29.1:'):
                 args.append('-DENABLE_ECCODES=OFF')
 
         if '+netcdf' in self.spec:
-            args.append('-DENABLE_NETCDF=ON')
+            args.extend(['-DENABLE_NETCDF=ON',
+                         # Prevent overriding by environment variable HDF5_ROOT
+                         '-DHDF5_ROOT=' + self.spec['hdf5'].prefix,
+                         # Prevent possible overriding by environment variables
+                         # NETCDF_ROOT, NETCDF_DIR, and NETCDF_PATH
+                         '-DNETCDF_PATH=' + self.spec['netcdf'].prefix,
+                         '-DNETCDF_DIR=' + self.spec['netcdf-cxx'].prefix])
         else:
             args.append('-DENABLE_NETCDF=OFF')
 
@@ -168,5 +198,11 @@ class Magics(CMakePackage):
                 args.append('-DENABLE_METVIEW_NO_QT=ON')
         else:
             args.append('-DENABLE_METVIEW=OFF')
+
+        args.append('-DCMAKE_FIND_DEBUG_MODE=ON')
+        args.append('-DECBUILD_LOG_LEVEL=DEBUG')
+        args.append('-DBoost_DEBUG=ON')
+        # args.append('--trace')
+        # args.append('--debug-output')
 
         return args
