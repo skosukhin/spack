@@ -74,6 +74,8 @@ class NetlibLapack(CMakePackage):
     provides('blas', when='~external-blas')
     provides('lapack')
 
+    depends_on('cmake', patches=patch('cmake_nag.patch', when='@:3.12'),
+               type='build', when='%nag+shared')
     depends_on('blas', when='+external-blas')
     depends_on('netlib-xblas+fortran+plain_blas', when='+xblas')
     depends_on('python@2.7:', type='test')
