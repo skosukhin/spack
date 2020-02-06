@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 import os
-import platform
 import re
 import itertools
 import shutil
@@ -234,14 +233,10 @@ class Compiler(object):
 
     @property
     def disable_new_dtags(self):
-        if platform.system() == 'Darwin':
-            return ''
         return '--disable-new-dtags'
 
     @property
     def enable_new_dtags(self):
-        if platform.system() == 'Darwin':
-            return ''
         return '--enable-new-dtags'
 
     # Cray PrgEnv name that can be used to load this compiler
