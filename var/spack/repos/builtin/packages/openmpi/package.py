@@ -167,19 +167,25 @@ class Openmpi(AutotoolsPackage):
     variant(
         'fabrics',
         values=disjoint_sets(
-            ('auto',), ('psm', 'psm2', 'verbs', 'mxm', 'ucx', 'libfabric')
+            ('auto',),
+            ('psm', 'psm2', 'verbs',
+             'mxm', 'ucx', 'ofi',
+             'fca', 'hcoll',
+             'xpmem', 'cma', 'knem')  # shared memory transports
         ).with_non_feature_values('auto', 'none'),
         description="List of fabrics that are enabled; "
-        "'auto' lets openmpi determine",
+                    "'auto' lets openmpi determine",
     )
 
     variant(
         'schedulers',
         values=disjoint_sets(
-            ('auto',), ('alps', 'lsf', 'tm', 'slurm', 'sge', 'loadleveler')
+            ('auto',),
+            ('alps', 'lsf', 'tm',
+             'slurm', 'sge', 'loadleveler')
         ).with_non_feature_values('auto', 'none'),
         description="List of schedulers for which support is enabled; "
-        "'auto' lets openmpi determine",
+                    "'auto' lets openmpi determine",
     )
 
     # Additional support options
@@ -246,32 +252,53 @@ class Openmpi(AutotoolsPackage):
     depends_on('ucx', when='fabrics=ucx')
     depends_on('ucx +thread_multiple', when='fabrics=ucx +thread_multiple')
     depends_on('ucx +thread_multiple', when='@3.0.0: fabrics=ucx')
-    depends_on('libfabric', when='fabrics=libfabric')
+    depends_on('libfabric', when='fabrics=ofi')
     depends_on('mxm', when='fabrics=mxm')
     depends_on('binutils+libiberty', when='fabrics=mxm')
     depends_on('rdma-core', when='fabrics=verbs')
+    depends_on('fca', when='fabrics=fca')
+    depends_on('hcoll', when='fabrics=hcoll')
+    depends_on('xpmem', when='fabrics=xpmem')
+    depends_on('knem', when='fabrics=knem')
 
     depends_on('slurm', when='schedulers=slurm')
     depends_on('lsf', when='schedulers=lsf')
     depends_on('openpbs', when='schedulers=tm')
 
-    conflicts('+cuda', when='@:1.6')  # CUDA support was added in 1.7
-    conflicts('fabrics=psm2', when='@:1.8')  # PSM2 support was added in 1.10.0
-    conflicts('fabrics=mxm', when='@:1.5.3')  # MXM support was added in 1.5.4
-    conflicts('+pmi', when='@:1.5.4')  # PMI support was added in 1.5.5
-    conflicts('schedulers=slurm ~pmi', when='@1.5.4:',
-              msg='+pmi is required for openmpi(>=1.5.5) to work with SLURM.')
-    conflicts('schedulers=loadleveler', when='@3.0.0:',
-              msg='The loadleveler scheduler is not supported with '
-              'openmpi(>=3.0.0).')
+    # CUDA support was added in 1.7
+    conflicts('+cuda', when='@:1.6')
+    # PMI support was added in 1.5.5
+    conflicts('+pmi', when='@:1.5.4')
+
     conflicts('+cxx', when='@5:',
               msg='C++ MPI bindings are removed in 5.0.X release')
     conflicts('+cxx_exceptions', when='@5:',
               msg='C++ exceptions are removed in 5.0.X release')
 
+    # PSM2 support was added in 1.10.0
+    conflicts('fabrics=psm2', when='@:1.8')
+    # MXM support was added in 1.5.4
+    conflicts('fabrics=mxm', when='@:1.5.3')
+    # libfabric (OFI) support was added in 1.10.0
+    conflicts('fabrics=ofi', when='@:1.8')
+    # fca support was added in 1.5.0 and removed in 5.0.0
+    conflicts('fabrics=fca', when='@:1.4,5:')
+    # hcoll support was added in 1.7.3:
+    conflicts('fabrics=hcoll', when='@:1.7.2')
+    # xpmem support was added in 1.7
+    conflicts('fabrics=xpmem', when='@:1.6')
+    # cma support was added in 1.7
+    conflicts('fabrics=cma', when='@:1.6')
+    # knem support was added in 1.5
+    conflicts('fabrics=knem', when='@:1.4')
+
+    conflicts('schedulers=slurm ~pmi', when='@1.5.4:',
+              msg='+pmi is required for openmpi(>=1.5.5) to work with SLURM.')
+    conflicts('schedulers=loadleveler', when='@3.0.0:',
+              msg='The loadleveler scheduler is not supported with '
+              'openmpi(>=3.0.0).')
+
     filter_compiler_wrappers('openmpi/*-wrapper-data*', relative_root='share')
-    conflicts('fabrics=libfabric', when='@:1.8')  # libfabric support was added in 1.10.0
-    # It may be worth considering making libfabric an exclusive fabrics choice
 
     def url_for_version(self, version):
         url = "http://www.open-mpi.org/software/ompi/v{0}/downloads/openmpi-{1}.tar.bz2"
@@ -317,18 +344,57 @@ class Openmpi(AutotoolsPackage):
             join_path(self.prefix.lib, 'libmpi.{0}'.format(dso_suffix))
         ]
 
+    # Most of the following with_or_without methods might seem redundant
+    # because Spack compiler wrapper adds the required -I and -L flags, which
+    # is enough for the configure script to find them. However, we also need
+    # the flags in Libtool (lib/*.la) and pkg-config (lib/pkgconfig/*.pc).
+    # Therefore, we pass the prefixes explicitly.
+
     def with_or_without_verbs(self, activated):
         # Up through version 1.6, this option was named --with-openib.
         # In version 1.7, it was renamed to be --with-verbs.
         opt = 'verbs' if self.spec.satisfies('@1.7:') else 'openib'
-        if not activated:
-            return '--without-{0}'.format(opt)
-        return '--with-{0}={1}'.format(opt, self.spec['rdma-core'].prefix)
+        return '--with-{0}={1}'.format(opt, self.spec['rdma-core'].prefix) \
+            if activated else '--without-{0}'.format(opt)
+
+    def with_or_without_mxm(self, activated):
+        return '--with-mxm={0}'.format(self.spec['mxm'].prefix) \
+            if activated else '--without-mxm'
+
+    def with_or_without_ucx(self, activated):
+        return '--with-ucx={0}'.format(self.spec['ucx'].prefix) \
+            if activated else '--without-ucx'
+
+    def with_or_without_ofi(self, activated):
+        # Up through version 3.0.3 this option was name --with-libfabric.
+        # In version 3.0.4, the old name was deprecated in favor of --with-ofi.
+        opt = 'ofi' if self.spec.satisfies('@3.0.4:') else 'libfabric'
+        return '--with-{0}={1}'.format(opt, self.spec['libfabric'].prefix) \
+            if activated else '--without-{0}'.format(opt)
+
+    def with_or_without_fca(self, activated):
+        return '--with-fca={0}'.format(self.spec['fca'].prefix) \
+            if activated else '--without-fca'
+
+    def with_or_without_hcoll(self, activated):
+        return '--with-hcoll={0}'.format(self.spec['hcoll'].prefix) \
+            if activated else '--without-hcoll'
+
+    def with_or_without_xpmem(self, activated):
+        return '--with-xpmem={0}'.format(self.spec['xpmem'].prefix) \
+            if activated else '--without-xpmem'
+
+    def with_or_without_knem(self, activated):
+        return '--with-knem={0}'.format(self.spec['knem'].prefix) \
+            if activated else '--without-knem'
+
+    def with_or_without_lsf(self, activated):
+        return '--with-lsf={0}'.format(self.spec['lsf'].prefix) \
+            if activated else '--without-lsf'
 
     def with_or_without_tm(self, activated):
-        if not activated:
-            return '--without-tm'
-        return '--with-tm={0}'.format(self.spec['openpbs'].prefix)
+        return '--with-tm={0}'.format(self.spec['openpbs'].prefix) \
+            if activated else '--without-tm'
 
     @run_before('autoreconf')
     def die_without_fortran(self):
@@ -402,16 +468,21 @@ class Openmpi(AutotoolsPackage):
         if spec.satisfies('@4.0.1:'):
             config_args.append('--enable-mpi1-compatibility')
 
-        # Fabrics
+        # Transports
         if 'fabrics=auto' not in spec:
-            config_args.extend(self.with_or_without('fabrics',
-                                                    activation_value='prefix'))
+            config_args.extend(self.with_or_without('fabrics'))
         # The wrappers fail to automatically link libfabric. This will cause
         # undefined references unless we add the appropriate flags.
-        if 'fabrics=libfabric' in spec:
+        if 'fabrics=ofi' in spec:
             config_args.append('--with-wrapper-ldflags=-L{0} -Wl,-rpath={0}'
                                .format(spec['libfabric'].prefix.lib))
             config_args.append('--with-wrapper-libs=-lfabric')
+
+        if spec.satisfies('@2.0.0'):
+            if 'fabrics=xpmem' in spec and 'platform=cray' in spec:
+                config_args.append('--with-cray-xpmem')
+            else:
+                config_args.append('--without-cray-xpmem')
 
         # Schedulers
         if 'schedulers=auto' not in spec:
