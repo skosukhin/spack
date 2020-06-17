@@ -186,9 +186,6 @@ def filter_compiler_wrappers(*files, **kwargs):
             if env_var in os.environ:
                 x.filter(os.environ[env_var], compiler_path, **filter_kwargs)
 
-        # Remove this linking flag if present (it turns RPATH into RUNPATH)
-        x.filter('-Wl,--enable-new-dtags', '', **filter_kwargs)
-
     PackageMixinsMeta.register_method_after(
         _filter_compiler_wrappers_impl, after
     )
