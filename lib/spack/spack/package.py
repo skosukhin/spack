@@ -203,11 +203,13 @@ class DetectablePackageMeta(object):
                         external_modules = extra_attributes.pop(
                             'modules', None
                         )
+                        external_env = extra_attributes.pop('environment', None)
                         try:
                             spec = spack.spec.Spec(
                                 spec_str,
                                 external_path=external_path,
-                                external_modules=external_modules
+                                external_modules=external_modules,
+                                external_env=external_env
                             )
                         except Exception as e:
                             msg = 'Parsing failed [spec_str="{0}", error={1}]'

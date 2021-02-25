@@ -1024,7 +1024,7 @@ class Spec(object):
 
     def __init__(self, spec_like=None,
                  normal=False, concrete=False, external_path=None,
-                 external_modules=None, full_hash=None):
+                 external_modules=None, external_env=None, full_hash=None):
         """Create a new Spec.
 
         Arguments:
@@ -1074,6 +1074,7 @@ class Spec(object):
         self._concrete = concrete
         self.external_path = external_path
         self.external_modules = Spec._format_module_list(external_modules)
+        self.external_env = external_env
         self._full_hash = full_hash
 
         # Older spack versions did not compute full_hash or build_hash,
@@ -1124,7 +1125,9 @@ class Spec(object):
 
     @property
     def external(self):
-        return bool(self.external_path) or bool(self.external_modules)
+        return any([bool(self.external_path),
+                    bool(self.external_modules),
+                    bool(self.external_env)])
 
     def get_dependency(self, name):
         dep = self._dependencies.get(name)
@@ -1630,6 +1633,7 @@ class Spec(object):
             d['external'] = syaml.syaml_dict([
                 ('path', self.external_path),
                 ('module', self.external_modules),
+                ('environment', self.external_env),
                 ('extra_attributes', self.extra_attributes)
             ])
 
@@ -1834,6 +1838,7 @@ class Spec(object):
 
         spec.external_path = None
         spec.external_modules = None
+        spec.external_env = None
         if 'external' in node:
             # This conditional is needed because sometimes this function is
             # called with a node already constructed that contains a 'versions'
@@ -1844,6 +1849,9 @@ class Spec(object):
                 spec.external_modules = node['external']['module']
                 if spec.external_modules is False:
                     spec.external_modules = None
+                spec.external_env = node['external']['environment']
+                if spec.external_env is False:
+                    spec.external_env = None
                 spec.extra_attributes = node['external'].get(
                     'extra_attributes', syaml.syaml_dict()
                 )
@@ -2297,7 +2305,8 @@ class Spec(object):
                         feq(replacement.external_path,
                             spec.external_path) and
                         feq(replacement.external_modules,
-                            spec.external_modules)):
+                            spec.external_modules) and
+                        feq(replacement.external_env, spec.external_env)):
                     continue
                 # Refine this spec to the candidate. This uses
                 # replace_with AND dup so that it can work in
@@ -3368,6 +3377,7 @@ class Spec(object):
                        self.concrete != other.concrete and
                        self.external_path != other.external_path and
                        self.external_modules != other.external_modules and
+                       self.external_env != other.external_env and
                        self.compiler_flags != other.compiler_flags)
 
         self._package = None
@@ -3397,6 +3407,7 @@ class Spec(object):
         self.variants.spec = self
         self.external_path = other.external_path
         self.external_modules = other.external_modules
+        self.external_env = other.external_env
         self.extra_attributes = other.extra_attributes
         self.namespace = other.namespace
 

@@ -113,6 +113,9 @@ def _generate_pkg_config(external_pkg_entries):
         if e.spec.external_modules:
             external_items.append(('modules', e.spec.external_modules))
 
+        if e.spec.external_env:
+            external_items.append(('environment', e.spec.external_env))
+
         if e.spec.extra_attributes:
             external_items.append(
                 ('extra_attributes',

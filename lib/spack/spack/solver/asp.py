@@ -1470,6 +1470,7 @@ class SpecBuilder(object):
         self._specs[pkg].external_modules = (
             spack.spec.Spec._format_module_list(spec_info.get('modules', None))
         )
+        self._specs[pkg].external_env = spec_info.get('environment', None)
         self._specs[pkg].extra_attributes = spec_info.get(
             'extra_attributes', {}
         )

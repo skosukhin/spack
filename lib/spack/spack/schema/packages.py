@@ -7,6 +7,7 @@
 .. literalinclude:: _spack_root/lib/spack/spack/schema/packages.py
    :lines: 13-
 """
+import spack.schema.environment
 
 
 def deprecate_paths_and_modules(instance, deprecated_properties):
@@ -127,6 +128,8 @@ properties = {
                                 'prefix': {'type': 'string'},
                                 'modules': {'type': 'array',
                                             'items': {'type': 'string'}},
+                                'environment':
+                                    spack.schema.environment.definition,
                                 'extra_attributes': {'type': 'object'}
                             },
                             'additionalProperties': True,

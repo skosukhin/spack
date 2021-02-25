@@ -721,6 +721,21 @@ def load_external_modules(pkg):
             load_module(external_module)
 
 
+def set_external_env(pkg, env):
+    """Traverse a package's spec DAG and apply any external environment
+    modifications.
+
+    Traverse a package's dependencies and apply any external environment
+    modifications associated with them.
+
+    Args:
+        pkg (PackageBase): package to apply the modifications for
+        env (EnvironmentModifications): environment
+    """
+    for dep in list(pkg.spec.traverse()):
+        env.extend(spack.schema.environment.parse(dep.external_env))
+
+
 def setup_package(pkg, dirty, context='build'):
     """Execute all environment setup routines."""
     env = EnvironmentModifications()
@@ -760,6 +775,8 @@ def setup_package(pkg, dirty, context='build'):
         )
         set_module_variables_for_package(pkg)
         env.prepend_path('PATH', '.')
+
+    set_external_env(pkg, env)
 
     # Loading modules, in particular if they are meant to be used outside
     # of Spack, can change environment variables that are relevant to the
