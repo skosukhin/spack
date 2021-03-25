@@ -142,23 +142,38 @@ class Concretizer(object):
            find one that is most ABI compatible.
         """
         candidates = self._valid_virtuals_and_externals(spec)
-        if not candidates:
+        if not any(x.compiler for x in candidates):
             return candidates
 
         # Find the nearest spec in the dag that has a compiler.  We'll
         # use that spec to calibrate compiler compatibility.
         abi_exemplar = find_spec(spec, lambda x: x.compiler)
         if abi_exemplar is None:
-            abi_exemplar = spec.root
+            # There are no specs in the dag with a compiler. Sort the
+            # candidates according to the compiler preferences of the root.
+            compiler_pref_key = PackagePrefs(spec.root.name, 'compiler')
 
-        # Sort candidates from most to least compatibility.
-        #   We reverse because True > False.
-        #   Sort is stable, so candidates keep their order.
-        return sorted(candidates,
-                      reverse=True,
-                      key=lambda spec: (
-                          _abi.compatible(spec, abi_exemplar, loose=True),
-                          _abi.compatible(spec, abi_exemplar)))
+            # We need a key that works for candidates without a compiler.
+            from sys import maxsize
+            no_compiler_key = maxsize
+
+            candidates = sorted(
+                candidates,
+                key=lambda spec: (
+                    compiler_pref_key(spec.compiler)
+                    if spec.compiler else no_compiler_key))
+        else:
+            # Sort candidates from most to least compatibility.
+            #   We reverse because True > False.
+            #   Sort is stable, so candidates keep their order.
+            candidates = sorted(
+                candidates,
+                reverse=True,
+                key=lambda spec: (
+                    _abi.compatible(spec, abi_exemplar, loose=True),
+                    _abi.compatible(spec, abi_exemplar)))
+
+        return candidates
 
     def concretize_version(self, spec):
         """If the spec is already concrete, return.  Otherwise take
