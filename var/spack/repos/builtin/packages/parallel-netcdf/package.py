@@ -7,7 +7,7 @@ from spack import *
 import os
 
 
-class ParallelNetcdf(AutotoolsPackage):
+class ParallelNetcdf(AutotoolsPackage, MPIRunnerPackage):
     """PnetCDF (Parallel netCDF) is a high-performance parallel I/O
     library for accessing files in format compatibility with Unidata's
     NetCDF, specifically the formats of CDF-1, 2, and 5.

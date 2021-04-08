@@ -24,6 +24,7 @@ from spack.build_systems.cached_cmake import (
     cmake_cache_string
 )
 from spack.build_systems.cuda import CudaPackage
+from spack.build_systems.mpi_runner import MPIRunnerPackage
 from spack.build_systems.oneapi import IntelOneApiPackage
 from spack.build_systems.oneapi import IntelOneApiLibraryPackage
 from spack.build_systems.rocm import ROCmPackage
