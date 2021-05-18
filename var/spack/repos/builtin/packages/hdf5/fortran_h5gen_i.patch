@@ -1,0 +1,20 @@
+--- a/fortran/src/CMakeLists.txt
++++ b/fortran/src/CMakeLists.txt
+@@ -140,7 +140,7 @@ set (f90CStub_CGEN_HDRS
+     # generated files
+     ${HDF5_F90_BINARY_DIR}/static/H5f90i_gen.h
+ )
+-add_custom_target (H5gen_i ALL
++add_custom_target (H5gen_i
+     DEPENDS H5match_types ${f90CStub_CGEN_HDRS}
+ )
+ 
+@@ -148,7 +148,7 @@ set (f90CStub_CGEN_SHHDRS
+     # generated files
+     ${HDF5_F90_BINARY_DIR}/shared/H5f90i_gen.h
+ )
+-add_custom_target (H5gen_iSH ALL
++add_custom_target (H5gen_iSH
+     DEPENDS H5match_types ${f90CStub_CGEN_SHHDRS}
+ )
+ 
