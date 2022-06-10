@@ -705,7 +705,9 @@ class Llvm(CMakePackage, CudaPackage):
         define = CMakePackage.define
 
         # unnecessary if we build openmp via LLVM_ENABLE_RUNTIMES
-        if "+cuda ~omp_as_runtime" in self.spec:
+        # (omp_as_runtime is a conditional variant, therefore we do not check
+        # if "~omp_as_runtime" in self.spec)
+        if "+cuda" in self.spec and "+omp_as_runtime" not in self.spec:
             ompdir = "build-bootstrapped-omp"
             prefix_paths = spack.build_environment.get_cmake_prefix_path(self)
             prefix_paths.append(str(spec.prefix))
