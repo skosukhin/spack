@@ -639,6 +639,10 @@ class Llvm(CMakePackage, CudaPackage):
             projects.append("lldb")
             cmake_args.append(define("LLDB_ENABLE_LIBEDIT", True))
             cmake_args.append(define("LLDB_ENABLE_CURSES", True))
+            # FindCurses.cmake gives preference to libcurses over libncurses. The former is not
+            # provided by the Spack installation of ncurses and we might end up linking to
+            # libcurses from a system directory. We try to prevent that with the following:
+            cmake_args.append(define("CURSES_NEED_NCURSES", True))
             if spec["ncurses"].satisfies("+termlib"):
                 cmake_args.append(define("LLVM_ENABLE_TERMINFO", True))
             else:
