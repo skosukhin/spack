@@ -381,12 +381,7 @@ class Llvm(CMakePackage, CudaPackage):
     # see https://reviews.llvm.org/D133513
     # TODO: adjust version constraint and switch to fetching from the upstream GitHub repo
     #  when/if the bugfix is merged
-    patch(
-        "https://reviews.llvm.org/file/data/2r2th6wbll3xcsgqk7yb/PHID-FILE-zisxml2toavs7dr3efcz/D133513.diff",
-        sha256="8b461d74724c43620e86aa26d7f9c19e97bef4b198ff6bb4f334e959034353b0",
-        level=0,
-        when="@14:15+lldb+python",
-    )
+    patch("D133513.diff", level=0, when="@14:15+lldb+python")
 
     # The functions and attributes below implement external package
     # detection for LLVM. See:
