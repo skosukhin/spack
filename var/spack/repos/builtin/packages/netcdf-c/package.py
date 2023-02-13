@@ -194,9 +194,13 @@ class NetcdfC(AutotoolsPackage):
             ldflags.append(curl_libs.search_flags)
             # TODO: figure out how to get correct flags via headers.cpp_flags
             cppflags.append("-I" + curl.prefix.include)
-        elif self.spec.satisfies("@4.8.0:"):
-            # Prevent overlinking to a system installation of libcurl:
-            config_args.append("ac_cv_lib_curl_curl_easy_setopt=no")
+        else:
+            if self.spec.satisfies("@4.8.0:"):
+                # Prevent overlinking to a system installation of libcurl:
+                config_args.append("ac_cv_lib_curl_curl_easy_setopt=no")
+            if self.spec.satisfies("@4.9.0:"):
+                # Prevent overlinking to a system installation of libxml2:
+                config_args.append("--disable-libxml2")
 
         if self.spec.satisfies("@4.4:"):
             if "+mpi" in self.spec:
