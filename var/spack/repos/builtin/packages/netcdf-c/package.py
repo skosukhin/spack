@@ -75,7 +75,11 @@ class NetcdfC(CMakePackage, AutotoolsPackage):
     patch("4.8.1-no-strict-aliasing-config.patch", when="@4.8.1")
 
     # See https://github.com/Unidata/netcdf-c/pull/2618
-    patch("4.9.0-no-mpi-yes-pnetcdf.patch", when="@4.9.0: ~mpi+parallel-netcdf")
+    patch(
+        "https://github.com/Unidata/netcdf-c/commit/00a722b253bae186bba403d0f92ff1eba719591f.patch?full_index=1",
+        sha256="25b83de1e081f020efa9e21c94c595220849f78c125ad43d8015631d453dfcb9",
+        when="@4.9.0:4.9.1 ~mpi+parallel-netcdf",
+    )
 
     variant("mpi", default=True, description="Enable parallel I/O for netcdf-4")
     variant("parallel-netcdf", default=False, description="Enable parallel I/O for classic files")
