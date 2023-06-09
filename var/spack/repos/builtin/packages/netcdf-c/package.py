@@ -79,6 +79,15 @@ class NetcdfC(CMakePackage, AutotoolsPackage):
         )
         _force_autoreconf_when.append("@4.8.1")
 
+        # See <>
+        # Note that https://github.com/Unidata/netcdf-c/commit/267b26f1239310ca7ba8304315834939f7cc9886
+        # is not relevant in the Spack context and we do not apply it when @4.9.0:4.9.1 because
+        # libxml2 is always available when DAP support is requested.
+        # TODO: update the version constraint and change the patch URL when/if the referenced PR is
+        #  accepted.
+        patch("darwin-dap-config.patch", when="@4.9.2:~dap platform=darwin")
+        _force_autoreconf_when.append("@4.9.2:~dap platform=darwin")
+
     with when("@4.7.2"):
         # Fix headers
         # See https://github.com/Unidata/netcdf-c/pull/1505

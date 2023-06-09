@@ -1,0 +1,11 @@
+--- a/configure.ac
++++ b/configure.ac
+@@ -1248,7 +1248,7 @@ if test "x$enable_hdf5" = "xno" ; then
+ fi
+ 
+ if test "x$ISOSX" = xyes && test "x$have_libxml2" = xno ; then
+-  AC_MSG_ERROR([Error: OSX requires libxml2 => --disable-dap4.])
++  AC_MSG_WARN([OSX requires libxml2 for DAP4 support; disabling DAP4])
+   enable_dap4=no
+ fi
+ 
